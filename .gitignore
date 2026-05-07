@@ -1,0 +1,21 @@
+.venv/
+.vscode/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Backend
+WebAdv-backend/target/
+WebAdv-backend/logs/
+WebAdv-backend/uploads/
+WebAdv-backend/.env
+WebAdv-backend/.env.*
+!WebAdv-backend/.env.render.example
+
+# OS/editor
+.DS_Store
+Thumbs.db

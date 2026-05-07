@@ -1,0 +1,32 @@
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: ${MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED:true}
+  health:
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}
+  prometheus:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_PROMETHEUS_ENABLED:false}
+
+springdoc:
+  api-docs:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+
+app:
+  api-docs:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+  bootstrap:
+    enabled: ${APP_BOOTSTRAP_ENABLED:false}
+    mode: ${APP_BOOTSTRAP_MODE:none}
+  storage:
+    type: ${APP_STORAGE_TYPE:s3}
+  ai:
+    risk:
+      schedule-enabled: ${APP_AI_RISK_SCHEDULE_ENABLED:false}
+    analytics-summary:
+      schedule-enabled: ${APP_AI_ANALYTICS_SUMMARY_SCHEDULE_ENABLED:false}

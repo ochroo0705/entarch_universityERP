@@ -1,0 +1,192 @@
+name: Backend EC2 Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "WebAdv-backend/**"
+      - ".github/workflows/backend-ec2.yml"
+      - "deploy/ec2/backend/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/edusys-backend
+
+jobs:
+  test-build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect backend path
+        id: paths
+        shell: bash
+        run: |
+          if [ -f WebAdv-backend/pom.xml ]; then
+            echo "backend_dir=WebAdv-backend" >> "$GITHUB_OUTPUT"
+            echo "dockerfile=WebAdv-backend/Dockerfile" >> "$GITHUB_OUTPUT"
+          elif [ -f pom.xml ]; then
+            echo "backend_dir=." >> "$GITHUB_OUTPUT"
+            echo "dockerfile=Dockerfile" >> "$GITHUB_OUTPUT"
+          else
+            echo "Could not find backend pom.xml"
+            exit 1
+          fi
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Run backend tests
+        shell: bash
+        run: |
+          cd "${{ steps.paths.outputs.backend_dir }}"
+          mvn -B test
+
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        if: github.ref == 'refs/heads/main'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push Docker image
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ steps.paths.outputs.backend_dir }}
+          file: ./${{ steps.paths.outputs.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Ensure deploy directory exists
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_DIR: ${{ secrets.EC2_APP_DIR }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DEPLOY_DIR
+          script: |
+            set -e
+            if [ -z "$DEPLOY_DIR" ]; then
+              DEPLOY_DIR=/opt/edusys/backend
+            fi
+
+            mkdir -p "$DEPLOY_DIR"
+
+      - name: Write backend compose file on EC2
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_DIR: ${{ secrets.EC2_APP_DIR }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DEPLOY_DIR,IMAGE
+          script: |
+            set -e
+            if [ -z "$DEPLOY_DIR" ]; then
+              DEPLOY_DIR=/opt/edusys/backend
+            fi
+
+            mkdir -p "$DEPLOY_DIR"
+
+            cat <<EOF > "$DEPLOY_DIR/docker-compose.yml"
+            services:
+              backend:
+                image: ${IMAGE}
+                container_name: edusys-backend
+                restart: unless-stopped
+                env_file:
+                  - .env
+                ports:
+                  - "127.0.0.1:\${BACKEND_PORT:-8080}:8080"
+                healthcheck:
+                  test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 5
+                  start_period: 40s
+                volumes:
+                  - backend-logs:/app/logs
+                  - backend-uploads:/app/uploads
+
+            volumes:
+              backend-logs:
+              backend-uploads:
+            EOF
+
+      - name: Deploy on EC2
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DEPLOY_DIR: ${{ secrets.EC2_APP_DIR }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GHCR_USERNAME,GHCR_TOKEN,DEPLOY_DIR,IMAGE
+          script: |
+            set -e
+            if [ -z "$DEPLOY_DIR" ]; then
+              DEPLOY_DIR=/opt/edusys/backend
+            fi
+
+            mkdir -p "$DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+
+            if [ ! -f docker-compose.yml ]; then
+              echo "Missing docker-compose.yml in $DEPLOY_DIR"
+              exit 1
+            fi
+
+            if [ ! -f .env ]; then
+              echo "Missing .env in $DEPLOY_DIR"
+              echo "Create the file directly on EC2 at $DEPLOY_DIR/.env with your production values."
+              exit 1
+            fi
+
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE_CMD="docker compose"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_CMD="docker-compose"
+            else
+              echo "Docker Compose is not installed on the server"
+              exit 1
+            fi
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            $COMPOSE_CMD pull
+            $COMPOSE_CMD up -d
+            docker image prune -f

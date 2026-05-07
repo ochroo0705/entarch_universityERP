@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+target
+logs
+uploads
+.env
+.env.*
+README.md
+Schedule.md
+workspace.xml
+modules.xml
+misc.xml
+.DS_Store

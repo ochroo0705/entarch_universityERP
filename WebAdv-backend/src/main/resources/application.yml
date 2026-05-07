@@ -1,0 +1,134 @@
+spring:
+  application:
+    name: backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:}
+    username: ${SPRING_DATASOURCE_USERNAME:}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.format_sql: true
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: true
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:10MB}
+  mail:
+    host: ${SPRING_MAIL_HOST:}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SPRING_MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:true}
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.sql: WARN
+    org.hibernate.orm.sql.exec: WARN
+    org.hibernate.orm.results: WARN
+    org.hibernate.orm.sql.ast: WARN
+    org.hibernate.type.descriptor.sql: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: true
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+twilio:
+  accountSid: ${TWILIO_ACCOUNT_SID:}
+  authToken: ${TWILIO_AUTH_TOKEN:}
+  phoneNumber: ${TWILIO_PHONE_NUMBER:}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  api-docs:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+  integrations:
+    mail:
+      enabled: ${APP_MAIL_ENABLED:false}
+      from: ${APP_MAIL_FROM:${SPRING_MAIL_USERNAME:}}
+    twilio:
+      enabled: ${APP_TWILIO_ENABLED:false}
+  bootstrap:
+    enabled: ${APP_BOOTSTRAP_ENABLED:false}
+    mode: ${APP_BOOTSTRAP_MODE:none}
+    admin:
+      username: ${APP_BOOTSTRAP_ADMIN_USERNAME:admin}
+      email: ${APP_BOOTSTRAP_ADMIN_EMAIL:admin@example.com}
+      password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
+      first-name: ${APP_BOOTSTRAP_ADMIN_FIRST_NAME:System}
+      last-name: ${APP_BOOTSTRAP_ADMIN_LAST_NAME:Admin}
+      phone: ${APP_BOOTSTRAP_ADMIN_PHONE:}
+  storage:
+    type: ${APP_STORAGE_TYPE:local}
+    local:
+      upload-dir: ${APP_LOCAL_UPLOAD_DIR:uploads}
+    s3:
+      bucket: ${APP_STORAGE_BUCKET:}
+      region: ${APP_STORAGE_REGION:us-east-1}
+      endpoint: ${APP_STORAGE_ENDPOINT:}
+      access-key: ${APP_STORAGE_ACCESS_KEY:}
+      secret-key: ${APP_STORAGE_SECRET_KEY:}
+      path-style-access-enabled: ${APP_STORAGE_PATH_STYLE:true}
+      key-prefix: ${APP_STORAGE_KEY_PREFIX:}
+  seed:
+    bulk-users: ${APP_SEED_BULK_USERS:false}
+    bulk-users-count: ${APP_SEED_BULK_USERS_COUNT:1000}
+    generate-risk-snapshots: ${APP_SEED_GENERATE_RISK_SNAPSHOTS:false}
+  ai:
+    parent-message:
+      provider:
+        enabled: ${APP_AI_PARENT_MESSAGE_PROVIDER_ENABLED:false}
+        base-url: ${APP_AI_PARENT_MESSAGE_PROVIDER_BASE_URL:https://api.openai.com/v1}
+        api-key: ${APP_AI_PARENT_MESSAGE_PROVIDER_API_KEY:}
+        model: ${APP_AI_PARENT_MESSAGE_PROVIDER_MODEL:gpt-4o-mini}
+        timeout-seconds: ${APP_AI_PARENT_MESSAGE_PROVIDER_TIMEOUT_SECONDS:20}
+    risk:
+      schedule-enabled: ${APP_AI_RISK_SCHEDULE_ENABLED:false}
+      recalculation-cron: ${APP_AI_RISK_RECALCULATION_CRON:0 0 2 * * *}
+    analytics-summary:
+      provider:
+        enabled: ${APP_AI_ANALYTICS_SUMMARY_PROVIDER_ENABLED:false}
+        base-url: ${APP_AI_ANALYTICS_SUMMARY_PROVIDER_BASE_URL:https://api.openai.com/v1}
+        api-key: ${APP_AI_ANALYTICS_SUMMARY_PROVIDER_API_KEY:}
+        model: ${APP_AI_ANALYTICS_SUMMARY_PROVIDER_MODEL:gpt-4o-mini}
+        timeout-seconds: ${APP_AI_ANALYTICS_SUMMARY_PROVIDER_TIMEOUT_SECONDS:20}
+      schedule-enabled: ${APP_AI_ANALYTICS_SUMMARY_SCHEDULE_ENABLED:false}
+      refresh-cron: ${APP_AI_ANALYTICS_SUMMARY_REFRESH_CRON:0 15 2 * * *}
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: EduSys backend
+    environment: ${SPRING_PROFILES_ACTIVE:default}

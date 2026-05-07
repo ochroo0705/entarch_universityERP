@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: edusys-backend
+    env: java
+    rootDir: WebAdv-backend
+    buildCommand: mvn -B clean package
+    startCommand: java -jar target/backend-0.0.1-SNAPSHOT.jar
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: APP_STORAGE_TYPE
+        value: s3
+      - key: APP_BOOTSTRAP_ENABLED
+        value: "false"
+      - key: APP_AI_RISK_SCHEDULE_ENABLED
+        value: "false"
+      - key: APP_AI_ANALYTICS_SUMMARY_SCHEDULE_ENABLED
+        value: "false"

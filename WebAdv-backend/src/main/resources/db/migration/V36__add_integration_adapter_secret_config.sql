@@ -1,0 +1,4 @@
+ALTER TABLE university_integration_connections
+    ADD COLUMN IF NOT EXISTS adapter_mode VARCHAR(40) NOT NULL DEFAULT 'MOCK',
+    ADD COLUMN IF NOT EXISTS auth_type VARCHAR(40) NOT NULL DEFAULT 'NONE',
+    ADD COLUMN IF NOT EXISTS secret_ref VARCHAR(160);
